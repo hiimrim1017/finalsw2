@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이미지 업로더 및 PDF 변환기</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #e7dcdc;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        #pdfDownloadSection {
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>이미지 업로더 및 PDF 변환기</h1>
+
+    <!-- 이미지 업로더 섹션 -->
+    <section>
+        <h2>이미지 업로더</h2>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" id="myFiles" accept="image/*" multiple />
+            <button type="submit">이미지 업로드 하기</button>
+            <h3 id="uploadStatus">Status: </h3>
+            <h4 id="uploadMessage"></h4>
+        </form>
+        <div id="uploadedImages"></div>
+    </section>
+
+    <!-- PDF 변환기 섹션 -->
+    <section>
+        <h2>PDF 변환기</h2>
+        <form id="pdfForm" enctype="multipart/form-data">
+            <input type="file" id="pdfFiles" name="images" accept="image/*" multiple required />
+            <button type="submit">업로드 및 PDF로 변환</button>
+            <h3 id="pdfStatus">Status: </h3>
+            <h4 id="pdfMessage"></h4>
+        </form>
+        <div id="pdfDownloadSection">
+            <h3>PDF 다운로드</h3>
+            <a id="pdfDownloadLink" href="#" download>
+                <button>PDF 다운로드</button>
+            </a>
+        </div>
+    </section>
+
+    <script>
+        // 이미지 업로드 처리
+        const uploadForm = document.getElementById('uploadForm');
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const myFiles = document.getElementById('myFiles').files;
+
+            if (myFiles.length === 0) {
+                alert('파일을 한 개 이상 선택하세요.');
+                return;
+            }
+
+            const formData = new FormData();
+
+            Object.keys(myFiles).forEach(key => {
+                formData.append('myFiles', myFiles.item(key));
+            });
+
+            const response = await fetch('http://localhost:3500/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const json = await response.json();
+
+            const h3 = document.getElementById('uploadStatus');
+            h3.textContent = `Status: ${json?.status}`;
+            const h4 = document.getElementById('uploadMessage');
+            h4.textContent = json?.message;
+
+            if (json?.status === 'success' && json?.message) {
+                const uploadedImages = document.getElementById('uploadedImages');
+                uploadedImages.innerHTML = ''; 
+                json.message.split(', ').forEach(file => {
+                    const img = document.createElement('img');
+                    img.src = `files/${file}`;
+                    img.style.maxWidth = '200px';
+                    uploadedImages.appendChild(img);
+                });
+            }
+        });
+
+        // PDF 변환 처리
+        const pdfForm = document.getElementById('pdfForm');
+        const pdfDownloadSection = document.getElementById('pdfDownloadSection');
+        const pdfDownloadLink = document.getElementById('pdfDownloadLink');
+
+        pdfForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const pdfFiles = document.getElementById('pdfFiles').files;
+
+            if (pdfFiles.length === 0) {
+                alert('파일을 한 개 이상 선택하세요.');
+                return;
+            }
+
+            const formData = new FormData();
+
+            Object.keys(pdfFiles).forEach(key => {
+                formData.append('images', pdfFiles.item(key));
+            });
+
+            const response = await fetch('http://localhost:3900/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const json = await response.json();
+
+            const h3 = document.getElementById('pdfStatus');
+            h3.textContent = `Status: ${json?.status}`;
+            const h4 = document.getElementById('pdfMessage');
+            h4.textContent = json?.message;
+
+            if (json?.downloadUrl) {
+                pdfDownloadLink.href = json.downloadUrl;
+                pdfDownloadSection.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
